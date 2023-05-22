@@ -20,9 +20,7 @@ Ejercicios
     d) Si el producto no existe en el carrito, se debe mostrar un mensaje de error
     e) La función debe retornar una promesa
 ​
-3) Utilizar la función eliminarProducto utilizando .then() y .catch()
-​
-*/
+3) Utilizar la función eliminarProducto utilizando .then() y .catch()*/
 
 
 // Cada producto que vende el super es creado con esta clase
@@ -46,9 +44,7 @@ class Producto {
             this.stock = 10;
         }
     }
-
 }
-
 
 // Creo todos los productos que vende mi super
 const queso = new Producto('KS944RUR', 'Queso', 10, 'lacteos', 4);
@@ -62,7 +58,6 @@ const jabon = new Producto('WE328NJ', 'Jabon', 4, 'higiene', 3);
 
 // Genero un listado de productos. Simulando base de datos
 const productosDelSuper = [queso, gaseosa, cerveza, arroz, fideos, lavandina, shampoo, jabon];
-
 
 // Cada cliente que venga a mi super va a crear un carrito
 class Carrito {
@@ -80,20 +75,55 @@ class Carrito {
     /**
      * función que agrega @{cantidad} de productos con @{sku} al carrito
      */
+
     async agregarProducto(sku, cantidad) {
+        
         console.log(`Agregando ${cantidad} ${sku}`);
+        
+        try {
+          const producto = await findProductBySku(sku);
 
-        // Busco el producto en la "base de datos"
-        const producto = await findProductBySku(sku);
+          console.log("Producto encontrado", producto);
 
-        console.log("Producto encontrado", producto);
+          const productoExistente = this.productos.find(producto => producto.sku === sku);
+      
+          if (productoExistente) {
+            productoExistente.cantidad += cantidad;
+          } else {
+            const nuevoProducto = new ProductoEnCarrito(sku, producto.nombre, cantidad);
+            this.productos.push(nuevoProducto);
+      
+            if (!this.categorias.includes(producto.categoria)) {
+              this.categorias.push(producto.categoria);
+            }
+          }
+      
+          this.precioTotal += producto.precio * cantidad;
+        } catch (error) {
+          console.error(error);
+        }
+    }    
 
-        // Creo un producto nuevo
-        const nuevoProducto = new ProductoEnCarrito(sku, producto.nombre, cantidad);
-        this.productos.push(nuevoProducto);
-        this.precioTotal = this.precioTotal + (producto.precio * cantidad);
-        this.categorias.push(producto.categoria);
-    }
+    async eliminarProducto(sku, cantidad) {
+        return new Promise((resolve, reject) => {
+            const productoExistente = this.productos.find(producto => producto.sku === sku);
+
+            console.log(`Eliminando ${cantidad} ${sku}`);
+
+            if (!productoExistente) {    
+                    reject(`El producto ${sku} no existe en el carrito.`);
+                return;
+            }
+
+            if (cantidad < productoExistente.cantidad) {
+                productoExistente.cantidad -= cantidad;
+            } else {
+                const index = this.productos.indexOf(productoExistente);
+                this.productos.splice(index, 1);
+            }
+            resolve();
+        });
+    }    
 }
 
 // Cada producto que se agrega al carrito es creado con esta clase
@@ -107,7 +137,6 @@ class ProductoEnCarrito {
         this.nombre = nombre;
         this.cantidad = cantidad;
     }
-
 }
 
 // Función que busca un producto por su sku en "la base de datos"
@@ -118,11 +147,34 @@ function findProductBySku(sku) {
             if (foundProduct) {
                 resolve(foundProduct);
             } else {
-                reject(`Product ${sku} not found`);
+                    reject(`Error de codigo, el producto ${sku} no existe`);
             }
-        }, 1500);
+        }, 1000);
     });
 }
 
+  
 const carrito = new Carrito();
-carrito.agregarProducto('WE328NJ', 2);
+
+async function agregarYEliminarProductos() {
+    await carrito.agregarProducto('WE328NJ', 2);
+    await carrito.agregarProducto('WE328NJ', 1);
+    await carrito.agregarProducto('RT324GD', 3);
+    await carrito.agregarProducto('UI999TY', 2);
+
+    //console.log(carrito);
+
+    carrito.eliminarProducto('RT324GD', 1)
+        .then(() => {
+            console.log('Producto eliminado correctamente.');
+            console.log(carrito);
+        })
+        .catch(error => {
+            console.error(error);
+            console.log(carrito);
+        });
+}
+
+agregarYEliminarProductos();
+
+
